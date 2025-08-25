@@ -1,17 +1,14 @@
 const mongoose = require('mongoose');
 
 const studentSchema = new mongoose.Schema({
-    studentId: { type: String, required: true, unique: true }, 
-    email: { type: String, required: true, unique: true },
-    phone: { type: String, required: true },
-    college: { type: String, required: true },
-    year: { type: Number, required: true },
-    password:{ type: String, required: true },
-    fieldOfStudy: { type: String, required: true },
-    registeredEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event' },
-     // Foreign Key to Events
-    applications: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Application' }], // References to Application
-    createdAt: { type: Date, default: Date.now }
+    name: { type: String, required: true }, 
+    email: { type: String, required: true},
+    phone: { type: String },
+    college: { type: String},
+    year: { type: Number},
+    password:{ type: String},
+    fieldOfStudy: { type: String},
+    registeredEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event' }, // Foreign Key to Events
 });
 
 module.exports = mongoose.model('Student', studentSchema);
