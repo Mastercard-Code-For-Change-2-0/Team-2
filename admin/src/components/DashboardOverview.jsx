@@ -1,9 +1,60 @@
 import { useState } from 'react'
-import { Plus, Calendar, Users, UserCheck, TrendingUp } from 'lucide-react'
+import { Plus, Calendar, Users, UserCheck, TrendingUp, BarChart3, PieChart, Target, Award } from 'lucide-react'
 import CreateEventModal from './CreateEventModal'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement,
+} from 'chart.js'
+import { Bar, Pie, Line } from 'react-chartjs-2'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+  LineElement
+)
 
 function DashboardOverview() {
   const [showCreateModal, setShowCreateModal] = useState(false)
+
+  // Mock data for Katalyst Outreach Analytics
+  const analyticsData = {
+    conversionFunnel: {
+      labels: ['Raw leads', 'Interested', 'Registered', 'Event Attendance'],
+      data: [1200, 850, 680, 420, 180],
+      colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
+    },
+    leadSources: {
+      labels: ['Social Media', 'University Partnerships', 'Referrals', 'Direct Website', 'Email Campaigns'],
+      data: [35, 25, 20, 15, 5],
+      colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+    },
+    topEvents: [
+      { name: 'Annual Fest', registrations: 320, conversions: 45 },
+      { name: 'Hackathons', registrations: 280, conversions: 38 },
+      { name: 'TechFests', registrations: 250, conversions: 32 },
+      { name: 'Leadership Talk', registrations: 200, conversions: 28 },
+      { name: 'Marathon', registrations: 180, conversions: 22 }
+    ],
+    monthlyTrends: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      leads: [180, 220, 280, 320, 380, 420],
+      conversions: [25, 35, 42, 48, 58, 65]
+    }
+  }
 
   const stats = [
     {
@@ -39,21 +90,21 @@ function DashboardOverview() {
   const recentEvents = [
     {
       id: 1,
-      title: 'Tech Career Fair 2024',
+      title: 'Annual Fest',
       date: '2024-03-15',
       participants: 150,
       status: 'upcoming'
     },
     {
       id: 2,
-      title: 'Software Engineering Workshop',
+      title: 'Hackathons',
       date: '2024-04-20',
       participants: 75,
       status: 'live'
     },
     {
       id: 3,
-      title: 'AI/ML Bootcamp',
+      title: 'TechFests',
       date: '2024-02-28',
       participants: 200,
       status: 'completed'
@@ -145,6 +196,318 @@ function DashboardOverview() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Katalyst Outreach Analytics */}
+      <div className="mt-8">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Katalyst Outreach Analytics</h2>
+          <p className="text-gray-600">Student conversion funnel and lead analysis for events</p>
+        </div>
+
+        {/* Analytics Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Leads</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">1,200</p>
+                <p className="text-sm text-green-600 mt-1">+12% this month</p>
+              </div>
+              <div className="p-3 rounded-lg bg-blue-500">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">35%</p>
+                <p className="text-sm text-green-600 mt-1">+2.3% improvement</p>
+              </div>
+              <div className="p-3 rounded-lg bg-green-500">
+                <TrendingUp className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Applications</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">180</p>
+                <p className="text-sm text-green-600 mt-1">+8 this week</p>
+              </div>
+              <div className="p-3 rounded-lg bg-purple-500">
+                <Award className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Avg. Event ROI</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">3.2x</p>
+                <p className="text-sm text-green-600 mt-1">+0.4x increase</p>
+              </div>
+              <div className="p-3 rounded-lg bg-orange-500">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Student Conversion Funnel */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Student Conversion Funnel</h3>
+            <div className="h-80">
+              <Bar
+                data={{
+                  labels: analyticsData.conversionFunnel.labels,
+                  datasets: [{
+                    label: 'Count',
+                    data: analyticsData.conversionFunnel.data,
+                    backgroundColor: analyticsData.conversionFunnel.colors,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                  }]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      display: false
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const percentage = context.dataIndex === 0 ? 100 :
+                            ((context.parsed.y / analyticsData.conversionFunnel.data[0]) * 100).toFixed(1);
+                          return `${context.parsed.y} (${percentage}%)`;
+                        }
+                      }
+                    }
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      grid: {
+                        color: '#f3f4f6'
+                      }
+                    },
+                    x: {
+                      grid: {
+                        display: false
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Inverted Conversion Funnel */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Conversion Funnel Visualization</h3>
+            <div className="h-80 overflow-y-auto">
+              <div className="w-full space-y-3">
+                {analyticsData.conversionFunnel.labels.map((label, index) => {
+                  const value = analyticsData.conversionFunnel.data[index];
+                  const maxValue = analyticsData.conversionFunnel.data[0];
+                  const widthPercentage = (value / maxValue) * 100;
+                  const color = analyticsData.conversionFunnel.colors[index];
+                  const conversionRate = index === 0 ? 100 : ((value / analyticsData.conversionFunnel.data[0]) * 100).toFixed(1);
+
+                  return (
+                    <div key={index} className="relative">
+                      {/* Stage Header with Label and Metrics */}
+                      <div className="flex justify-between items-center mb-2 px-2">
+                        <span className="text-sm font-semibold text-gray-800">{label}</span>
+                        <div className="text-right">
+                          <span className="text-sm font-bold text-gray-900">{value}</span>
+                          <span className="text-xs text-gray-600 ml-1">({conversionRate}%)</span>
+                        </div>
+                      </div>
+
+                      {/* Funnel Bar */}
+                      <div className="flex justify-center mb-3">
+                        <div
+                          className="h-10 rounded-lg flex items-center justify-center text-white font-bold shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105 relative"
+                          style={{
+                            backgroundColor: color,
+                            width: `${Math.max(widthPercentage, 25)}%`,
+                            maxWidth: '100%'
+                          }}
+                        >
+                          <span className="text-sm font-semibold">{value}</span>
+
+                          {/* Conversion Rate Badge */}
+                          <div className="absolute -top-2 -right-2 bg-white text-gray-800 text-xs font-bold px-2 py-1 rounded-full shadow-sm border">
+                            {conversionRate}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Arrow Connector */}
+                      {index < analyticsData.conversionFunnel.labels.length - 1 && (
+                        <div className="flex justify-center mb-2">
+                          <div className="flex flex-col items-center">
+                            <div className="w-0 h-0 border-l-3 border-r-3 border-t-6 border-transparent border-t-gray-400"></div>
+                            <div className="w-px h-2 bg-gray-300"></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Conversion Rate Summary */}
+                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-700 mb-1">Overall Conversion Rate</p>
+                    <p className="text-xl font-bold text-blue-600">
+                      {((analyticsData.conversionFunnel.data[analyticsData.conversionFunnel.data.length - 1] / analyticsData.conversionFunnel.data[0]) * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {analyticsData.conversionFunnel.data[analyticsData.conversionFunnel.data.length - 1]} applications from {analyticsData.conversionFunnel.data[0]} leads
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lead Source Breakdown */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Lead Source Breakdown</h3>
+            <div className="h-80">
+              <Pie
+                data={{
+                  labels: analyticsData.leadSources.labels,
+                  datasets: [{
+                    data: analyticsData.leadSources.data,
+                    backgroundColor: analyticsData.leadSources.colors,
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                  }]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'bottom',
+                      labels: {
+                        padding: 20,
+                        usePointStyle: true
+                      }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          return `${context.label}: ${context.parsed}%`;
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Top 5 Events and Monthly Trends */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Top 5 Events by Registrations */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top 5 Events by Registrations</h3>
+            <div className="space-y-4">
+              {analyticsData.topEvents.map((event, index) => (
+                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-semibold text-blue-600">#{index + 1}</span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">{event.name}</h4>
+                      <p className="text-sm text-gray-600">{event.conversions} Attendees</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-gray-900">{event.registrations}</p>
+                    <p className="text-sm text-gray-600">registrations</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Monthly Trends */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Lead & Conversion Trends</h3>
+            <div className="h-80">
+              <Line
+                data={{
+                  labels: analyticsData.monthlyTrends.labels,
+                  datasets: [
+                    {
+                      label: 'Leads Generated',
+                      data: analyticsData.monthlyTrends.leads,
+                      borderColor: '#3B82F6',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      tension: 0.4,
+                      fill: true
+                    },
+                    {
+                      label: 'Conversions',
+                      data: analyticsData.monthlyTrends.conversions,
+                      borderColor: '#10B981',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      tension: 0.4,
+                      fill: true
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                      labels: {
+                        usePointStyle: true,
+                        padding: 20
+                      }
+                    }
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      grid: {
+                        color: '#f3f4f6'
+                      }
+                    },
+                    x: {
+                      grid: {
+                        display: false
+                      }
+                    }
+                  },
+                  interaction: {
+                    intersect: false,
+                    mode: 'index'
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
