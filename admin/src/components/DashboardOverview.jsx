@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Calendar, Users, UserCheck, TrendingUp, BarChart3, Target, Award } from 'lucide-react'
+import { Plus, Calendar, Users, UserCheck, TrendingUp, BarChart3, PieChart, Target, Award } from 'lucide-react'
 import CreateEventModal from './CreateEventModal'
 import {
   Chart as ChartJS,
