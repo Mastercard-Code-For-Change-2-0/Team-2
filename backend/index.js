@@ -22,10 +22,12 @@ app.use(cookieParser());
 
 app.use(cors());
 
-const userRoutes = require("./routes/userRoute");
-const paymentRoutes = require("./routes/paymentRoute");
+const userRoutes = require("./routers/userRoute");
+const eventRoute = require("./routers/eventRoute");
+
 app.use("/api/v1/auth",userRoutes);
-app.use("/api/v1/payment",paymentRoutes);
+app.use("/api/v1/event",eventRoute);
+// app.use("/api/v1/payment",paymentRoutes);
 
 app.get("/" , (req,res) => {
     return res.json({
