@@ -30,29 +30,32 @@ ChartJS.register(
 function DashboardOverview() {
   const [showCreateModal, setShowCreateModal] = useState(false)
 
-  // Mock data for Katalyst Outreach Analytics
+  // Mock data for Katalyst Outreach Analytics - Last 6 Months (Jan-Jun 2024)
   const analyticsData = {
+    // Conversion funnel for LAST 6 MONTHS (Jan-Jun 2024)
     conversionFunnel: {
       labels: ['Raw leads', 'Interested', 'Registered', 'Event Attendance'],
-      data: [1200, 850, 680, 420, 180],
+      data: [1800, 1260, 900, 630], // Total for 6 months
       colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
     },
     leadSources: {
       labels: ['Social Media', 'University Partnerships', 'Referrals', 'Direct Website', 'Email Campaigns'],
-      data: [35, 25, 20, 15, 5],
+      data: [35, 25, 20, 15, 5], // Percentage breakdown
       colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
     },
+    // Top 5 events from LAST 6 MONTHS with their total attendance
     topEvents: [
-      { name: 'Annual Fest', registrations: 320, conversions: 45 },
-      { name: 'Hackathons', registrations: 280, conversions: 38 },
-      { name: 'TechFests', registrations: 250, conversions: 32 },
-      { name: 'Leadership Talk', registrations: 200, conversions: 28 },
-      { name: 'Marathon', registrations: 180, conversions: 22 }
+      { name: 'Tech Career Fair (Mar)', registrations: 320, conversions: 112 },
+      { name: 'AI/ML Bootcamp (May)', registrations: 280, conversions: 98 },
+      { name: 'Hackathon Series (Apr)', registrations: 250, conversions: 88 },
+      { name: 'Leadership Summit (Feb)', registrations: 200, conversions: 70 },
+      { name: 'Data Science Workshop (Jun)', registrations: 180, conversions: 63 }
     ],
+    // Monthly progression over 6 months
     monthlyTrends: {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      leads: [180, 220, 280, 320, 380, 420],
-      conversions: [25, 35, 42, 48, 58, 65]
+      labels: ['Jan 2024', 'Feb 2024', 'Mar 2024', 'Apr 2024', 'May 2024', 'Jun 2024'],
+      leads: [250, 280, 320, 300, 350, 300], // Monthly leads (total = 1800)
+      conversions: [88, 98, 112, 105, 123, 105] // Monthly event attendance (total = 631)
     }
   }
 
@@ -204,17 +207,17 @@ function DashboardOverview() {
       <div className="mt-8">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Katalyst Outreach Analytics</h2>
-          <p className="text-gray-600">Student conversion funnel and lead analysis for events</p>
+          <p className="text-gray-600">6-Month Performance Overview (Jan - Jun 2024)</p>
         </div>
 
-        {/* Analytics Stats */}
+        {/* Analytics Stats - Last 6 Months */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Leads</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">1,200</p>
-                <p className="text-sm text-green-600 mt-1">+12% this month</p>
+                <p className="text-sm font-medium text-gray-600">Total Leads (6 months)</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">1,800</p>
+                <p className="text-sm text-green-600 mt-1">300 avg/month</p>
               </div>
               <div className="p-3 rounded-lg bg-blue-500">
                 <Target className="w-6 h-6 text-white" />
@@ -225,9 +228,9 @@ function DashboardOverview() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                <p className="text-sm font-medium text-gray-600">Event Attendance Rate</p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">35%</p>
-                <p className="text-sm text-green-600 mt-1">+2.3% improvement</p>
+                <p className="text-sm text-green-600 mt-1">630 total attendees</p>
               </div>
               <div className="p-3 rounded-lg bg-green-500">
                 <TrendingUp className="w-6 h-6 text-white" />
@@ -238,9 +241,9 @@ function DashboardOverview() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Applications</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">180</p>
-                <p className="text-sm text-green-600 mt-1">+8 this week</p>
+                <p className="text-sm font-medium text-gray-600">Total Events Held</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">15</p>
+                <p className="text-sm text-green-600 mt-1">2.5 events/month</p>
               </div>
               <div className="p-3 rounded-lg bg-purple-500">
                 <Award className="w-6 h-6 text-white" />
@@ -251,9 +254,9 @@ function DashboardOverview() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg. Event ROI</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">3.2x</p>
-                <p className="text-sm text-green-600 mt-1">+0.4x increase</p>
+                <p className="text-sm font-medium text-gray-600">Avg. Event Capacity</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">85%</p>
+                <p className="text-sm text-green-600 mt-1">High engagement</p>
               </div>
               <div className="p-3 rounded-lg bg-orange-500">
                 <BarChart3 className="w-6 h-6 text-white" />
@@ -266,7 +269,7 @@ function DashboardOverview() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
           {/* Student Conversion Funnel */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Student Conversion Funnel</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">6-Month Conversion Funnel (Jan-Jun 2024)</h3>
             <div className="h-80">
               <Bar
                 data={{
