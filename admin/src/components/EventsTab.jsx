@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Users, MapPin, Clock, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import CreateEventModal from './CreateEventModal'
 
 function EventsTab({ activeSubTab }) {
   const [events, setEvents] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const navigate = useNavigate()
 
-  // Mock data - replace with API calls
+  // Mock data with additional analytics data
   const allEvents = [
     {
       id: 1,
@@ -16,7 +18,13 @@ function EventsTab({ activeSubTab }) {
       location: 'University Convention Center',
       participants: 150,
       maxParticipants: 200,
-      status: 'upcoming'
+      status: 'upcoming',
+      registrationTrend: [20, 35, 45, 60, 85, 110, 150],
+      participantTypes: {
+        students: 90,
+        professionals: 45,
+        others: 15
+      }
     },
     {
       id: 2,
@@ -26,7 +34,14 @@ function EventsTab({ activeSubTab }) {
       location: 'Engineering Building Room 101',
       participants: 75,
       maxParticipants: 100,
-      status: 'live'
+      status: 'live',
+      hourlyAttendance: [65, 70, 75, 78, 80, 82, 80, 75],
+      technologies: {
+        react: 30,
+        node: 25,
+        python: 15,
+        java: 10
+      }
     },
     {
       id: 3,
@@ -36,12 +51,23 @@ function EventsTab({ activeSubTab }) {
       location: 'Tech Hub Auditorium',
       participants: 200,
       maxParticipants: 200,
-      status: 'completed'
+      status: 'completed',
+      satisfactionRates: {
+        excellent: 70,
+        good: 40,
+        average: 15,
+        poor: 5
+      },
+      sessionAttendance: [120, 125, 130, 128, 115],
+      participantTypes: {
+        students: 120,
+        professionals: 60,
+        others: 20
+      }
     }
   ]
 
   useEffect(() => {
-    // Filter events based on active sub tab
     let filteredEvents = allEvents
     
     switch (activeSubTab) {
@@ -54,14 +80,29 @@ function EventsTab({ activeSubTab }) {
       case 'past-events':
         filteredEvents = allEvents.filter(event => event.status === 'completed')
         break
-      case 'all-events':
       default:
-        filteredEvents = allEvents
         break
     }
     
     setEvents(filteredEvents)
   }, [activeSubTab])
+
+  const handleViewDetails = (event) => {
+    // Updated navigation to match App.jsx routes
+    switch (event.status) {
+      case 'live':
+        navigate(`/dashboard/current/${event.id}`, { state: { eventData: event } })
+        break
+      case 'upcoming':
+        navigate(`/dashboard/upcoming/${event.id}`, { state: { eventData: event } })
+        break
+      case 'completed':
+        navigate(`/dashboard/past/${event.id}`, { state: { eventData: event } })
+        break
+      default:
+        break
+    }
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -72,94 +113,65 @@ function EventsTab({ activeSubTab }) {
     }
   }
 
-  const getTabTitle = () => {
-    switch (activeSubTab) {
-      case 'live-events': return 'Live Events'
-      case 'upcoming-events': return 'Upcoming Events'
-      case 'past-events': return 'Past Events'
-      case 'all-events': return 'All Events'
-      default: return 'All Events'
-    }
-  }
-
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{getTabTitle()}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Events</h1>
           <p className="text-gray-600 mt-1">{events.length} events found</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors shadow-lg"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Create Event
         </button>
       </div>
 
-      {/* Events Grid */}
-      {events.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-          <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No events found</h3>
-          <p className="text-gray-600 mb-6">Get started by creating your first event.</p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 mx-auto transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Create Event
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => (
-            <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{event.title}</h3>
-                  <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(event.status)}`}>
-                    {event.status}
-                  </span>
-                </div>
-                
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.description}</p>
-                
-                <div className="space-y-2 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString()}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    {event.location}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    {event.participants}/{event.maxParticipants} participants
-                  </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    View Details
-                  </button>
-                  <button className="px-4 py-2 border border-gray-300 hover:border-gray-400 text-gray-700 rounded-lg text-sm font-medium transition-colors">
-                    Edit
-                  </button>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {events.map((event) => (
+          <div key={event.id} className="bg-white rounded-lg shadow p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold">{event.title}</h3>
+              <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(event.status)}`}>
+                {event.status}
+              </span>
+            </div>
+            <p className="text-gray-600 text-sm mb-4">{event.description}</p>
+            <div className="space-y-2 text-sm text-gray-500 mb-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                {new Date(event.date).toLocaleDateString()}
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                {event.location}
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {event.participants}/{event.maxParticipants} participants
               </div>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleViewDetails(event)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {showCreateModal && (
         <CreateEventModal
           onClose={() => setShowCreateModal(false)}
-          onEventCreated={() => setShowCreateModal(false)}
+          onEventCreated={(newEvent) => {
+            setEvents([...events, newEvent])
+            setShowCreateModal(false)
+          }}
         />
       )}
     </div>
