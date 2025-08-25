@@ -34,6 +34,9 @@ function DashboardPage() {
         return <ParticipantsTab />
       case 'volunteers':
         return <VolunteersTab />
+      case 'email-sender':
+        navigate('/email-sender')
+        return null
       case 'settings':
         return <SettingsTab />
       default:

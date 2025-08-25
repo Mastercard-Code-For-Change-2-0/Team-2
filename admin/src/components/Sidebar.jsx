@@ -6,7 +6,7 @@ import {
   UserCheck, 
   Settings, 
   LogOut,
-  Plus,
+  Mail,
   Clock,
   CheckCircle,
   List
@@ -44,6 +44,12 @@ function Sidebar({ activeTab, setActiveTab, onLogout }) {
       id: 'volunteers',
       label: 'Volunteers',
       icon: UserCheck,
+      hasSubmenu: false
+    },
+    {
+      id: 'email-sender',
+      label: 'Email Sender',
+      icon: Mail,
       hasSubmenu: false
     },
     {

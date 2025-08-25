@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Users, MapPin, Clock, Plus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { eventAPI } from '../services/api'
 import CreateEventModal from './CreateEventModal'
 import toast from 'react-hot-toast'
 
 function EventsTab({ activeSubTab }) {
+  const navigate = useNavigate()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -81,6 +83,24 @@ function EventsTab({ activeSubTab }) {
   const handleEventCreated = () => {
     fetchEvents() // Refresh the events list
     setShowCreateModal(false)
+  }
+
+  const handleViewDetails = (event) => {
+    const eventData = {
+      ...event,
+      maxParticipants: event.participants + 50, // Add some mock data for demo
+    }
+    
+    if (event.status === 'upcoming') {
+      navigate(`/event/upcoming/${event._id}`, { state: { eventData } })
+    } else if (event.status === 'completed') {
+      navigate(`/event/past/${event._id}`, { state: { eventData } })
+    } else if (event.status === 'live') {
+      navigate(`/event/current/${event._id}`, { state: { eventData } })
+    } else {
+      // Default to upcoming for new events
+      navigate(`/event/upcoming/${event._id}`, { state: { eventData } })
+    }
   }
 
   if (loading) {
@@ -160,7 +180,10 @@ function EventsTab({ activeSubTab }) {
                 </div>
                 
                 <div className="flex gap-2">
-                  <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                  <button 
+                    onClick={() => handleViewDetails(event)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                  >
                     View Details
                   </button>
                   <button className="px-4 py-2 border border-gray-300 hover:border-gray-400 text-gray-700 rounded-lg text-sm font-medium transition-colors">

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Plus, Calendar, Users, UserCheck, TrendingUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { eventAPI } from '../services/api'
 import CreateEventModal from './CreateEventModal'
 import toast from 'react-hot-toast'
 
 function DashboardOverview() {
+  const navigate = useNavigate()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -95,6 +97,24 @@ function DashboardOverview() {
     setShowCreateModal(false)
   }
 
+  const handleEventClick = (event) => {
+    const eventData = {
+      ...event,
+      maxParticipants: event.participants + 50, // Add some mock data for demo
+    }
+    
+    if (event.status === 'upcoming') {
+      navigate(`/event/upcoming/${event._id}`, { state: { eventData } })
+    } else if (event.status === 'completed') {
+      navigate(`/event/past/${event._id}`, { state: { eventData } })
+    } else if (event.status === 'live') {
+      navigate(`/event/current/${event._id}`, { state: { eventData } })
+    } else {
+      // Default to upcoming for new events
+      navigate(`/event/upcoming/${event._id}`, { state: { eventData } })
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-6">
@@ -163,7 +183,11 @@ function DashboardOverview() {
           ) : (
             <div className="space-y-4">
               {events.slice(0, 5).map((event) => (
-                <div key={event._id || event.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div 
+                  key={event._id || event.id} 
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  onClick={() => handleEventClick(event)}
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                       <Calendar className="w-6 h-6 text-blue-600" />
