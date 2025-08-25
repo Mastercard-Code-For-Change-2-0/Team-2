@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { getUser } from '../utils/auth'
 import toast from 'react-hot-toast'
 
 function EventDetailsPage() {
@@ -8,7 +9,9 @@ function EventDetailsPage() {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
-
+  
+ const user = getUser()
+ console.log(user+"wejgfhgh")
   useEffect(() => {
     fetchEventDetails()
     fetchLeads()

@@ -1,62 +1,73 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Calendar, Users, UserCheck, TrendingUp } from 'lucide-react'
+import { eventAPI } from '../services/api'
 import CreateEventModal from './CreateEventModal'
+import toast from 'react-hot-toast'
 
 function DashboardOverview() {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchEvents()
+  }, [])
+
+  const fetchEvents = async () => {
+    try {
+      const response = await eventAPI.getAll()
+      console.log('Events API Response:', response)
+      if (response.data.success) {
+        const eventsData = response.data.events || []
+        // Add status based on date
+        const eventsWithStatus = eventsData.map(event => {
+          const eventDate = new Date(event.date)
+          const now = new Date()
+          const status = eventDate > now ? 'upcoming' : 'completed'
+          return {
+            ...event,
+            status,
+            participants: event.studentsEnrolled?.length || 0
+          }
+        })
+        setEvents(eventsWithStatus)
+      }
+    } catch (error) {
+      console.error('Failed to fetch events:', error)
+      toast.error('Failed to fetch events')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const stats = [
     {
       title: 'Total Events',
-      value: '12',
-      change: '+2 this month',
+      value: events.length.toString(),
+      change: `${events.filter(e => e.status === 'upcoming').length} upcoming`,
       icon: Calendar,
       color: 'blue'
     },
     {
-      title: 'Active Participants',
-      value: '1,234',
-      change: '+15% from last month',
+      title: 'Total Participants',
+      value: events.reduce((sum, event) => sum + (event.participants || 0), 0).toString(),
+      change: `Across ${events.length} events`,
       icon: Users,
       color: 'green'
     },
     {
-      title: 'Volunteers',
-      value: '45',
-      change: '+5 new this week',
+      title: 'Active Events',
+      value: events.filter(e => e.status === 'upcoming').length.toString(),
+      change: `${events.filter(e => e.status === 'completed').length} completed`,
       icon: UserCheck,
       color: 'purple'
     },
     {
-      title: 'Attendance Rate',
-      value: '87%',
-      change: '+3% improvement',
+      title: 'Avg Participation',
+      value: events.length > 0 ? Math.round(events.reduce((sum, event) => sum + (event.participants || 0), 0) / events.length).toString() : '0',
+      change: 'Per event',
       icon: TrendingUp,
       color: 'orange'
-    }
-  ]
-
-  const recentEvents = [
-    {
-      id: 1,
-      title: 'Tech Career Fair 2024',
-      date: '2024-03-15',
-      participants: 150,
-      status: 'upcoming'
-    },
-    {
-      id: 2,
-      title: 'Software Engineering Workshop',
-      date: '2024-04-20',
-      participants: 75,
-      status: 'live'
-    },
-    {
-      id: 3,
-      title: 'AI/ML Bootcamp',
-      date: '2024-02-28',
-      participants: 200,
-      status: 'completed'
     }
   ]
 
@@ -77,6 +88,21 @@ function DashboardOverview() {
       orange: 'bg-orange-500'
     }
     return colors[color] || 'bg-gray-500'
+  }
+
+  const handleEventCreated = () => {
+    fetchEvents() // Refresh the events list
+    setShowCreateModal(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading dashboard...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -123,36 +149,49 @@ function DashboardOverview() {
           <h2 className="text-xl font-semibold text-gray-900">Recent Events</h2>
         </div>
         <div className="p-6">
-          <div className="space-y-4">
-            {recentEvents.map((event) => (
-              <div key={event.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-600" />
+          {events.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No events created yet</p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              >
+                Create Your First Event
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {events.slice(0, 5).map((event) => (
+                <div key={event._id || event.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{event.title}</h3>
+                      <p className="text-sm text-gray-600">{new Date(event.date).toLocaleDateString()} • {event.location}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{event.title}</h3>
-                    <p className="text-sm text-gray-600">{new Date(event.date).toLocaleDateString()}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">{event.participants || 0} participants</p>
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(event.status)}`}>
+                        {event.status || 'upcoming'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{event.participants} participants</p>
-                    <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(event.status)}`}>
-                      {event.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {showCreateModal && (
         <CreateEventModal
           onClose={() => setShowCreateModal(false)}
-          onEventCreated={() => setShowCreateModal(false)}
+          onEventCreated={handleEventCreated}
         />
       )}
     </div>

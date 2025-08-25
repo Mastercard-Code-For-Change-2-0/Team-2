@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { setToken, setUser, setLoading } from '../slices/authSlice'
+import { authAPI } from '../services/api'
+import { setAuth } from '../utils/auth'
 import toast from 'react-hot-toast'
 
 function LoginPage() {
@@ -10,36 +10,33 @@ function LoginPage() {
     password: ''
   })
   const [isLogin, setIsLogin] = useState(true)
-  const dispatch = useDispatch()
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    dispatch(setLoading(true))
+    setLoading(true)
 
-    // Mock authentication - no backend needed
-    setTimeout(() => {
-      if (formData.email === 'admin@katalyst.com' && formData.password === 'password123') {
-        const mockToken = 'mock-jwt-token-12345'
-        const mockUser = {
-          id: '1',
-          name: 'Admin User',
-          email: 'admin@katalyst.com'
-        }
+    try {
+      const response = isLogin
+        ? await authAPI.login(formData)
+        : await authAPI.signup({ ...formData, name: formData.name })
 
-        localStorage.setItem('token', mockToken)
-        localStorage.setItem('user', JSON.stringify(mockUser))
-        
-        dispatch(setToken(mockToken))
-        dispatch(setUser(mockUser))
-        
-        toast.success('Login successful!')
+      console.log('API Response:', response.data)
+
+      if (response.data.success) {
+        setAuth(response.data.token, response.data.admin || response.data.user)
+        toast.success(isLogin ? 'Login successful!' : 'Account created successfully!')
         navigate('/dashboard')
       } else {
-        toast.error('Invalid credentials. Use admin@katalyst.com / password123')
+        toast.error(response.data.message || 'Authentication failed')
       }
-      dispatch(setLoading(false))
-    }, 1000) // Simulate API delay
+    } catch (error) {
+      console.error('Login error:', error)
+      toast.error(error.response?.data?.message || 'Authentication failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -92,9 +89,10 @@ function LoginPage() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {isLogin ? 'Sign in' : 'Sign up'}
+              {loading ? 'Loading...' : (isLogin ? 'Sign in' : 'Sign up')}
             </button>
           </div>
 

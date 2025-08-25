@@ -1,24 +1,24 @@
 import { useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { setToken, setUser } from '../slices/authSlice'
+import { useNavigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import DashboardOverview from '../components/DashboardOverview'
 import EventsTab from '../components/EventsTab'
 import ParticipantsTab from '../components/ParticipantsTab'
 import VolunteersTab from '../components/VolunteersTab'
 import SettingsTab from '../components/SettingsTab'
+import { getUser, clearAuth } from '../utils/auth'
 import toast from 'react-hot-toast'
 
 function DashboardPage() {
   const [activeTab, setActiveTab] = useState('dashboard')
-  const dispatch = useDispatch()
+  const navigate = useNavigate()
 
+  const user = getUser()
+  
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    dispatch(setToken(null))
-    dispatch(setUser(null))
+    clearAuth()
     toast.success('Logged out successfully')
+    navigate('/login')
   }
 
   const renderActiveTab = () => {

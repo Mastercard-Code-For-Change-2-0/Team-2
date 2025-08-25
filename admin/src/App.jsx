@@ -1,11 +1,29 @@
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import EventDetailsPage from './pages/EventDetailsPage'
 
 function App() {
-  const { token } = useSelector((state) => state.auth)
+  const [token, setToken] = useState(localStorage.getItem('token'))
+
+  // Listen for storage changes to update auth state
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setToken(localStorage.getItem('token'))
+    }
+
+    // Listen for storage events (when localStorage changes in other tabs)
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Custom event for same-tab localStorage changes
+    window.addEventListener('auth-change', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('auth-change', handleStorageChange)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50">

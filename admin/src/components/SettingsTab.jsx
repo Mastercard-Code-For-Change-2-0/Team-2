@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import { User, Lock, Bell, Shield, Save } from 'lucide-react'
-import { setUser } from '../slices/authSlice'
+import { getUser } from '../utils/auth'
 import toast from 'react-hot-toast'
 
 function SettingsTab() {
-  const { user } = useSelector((state) => state.auth)
-  const dispatch = useDispatch()
+  const user = getUser()
   
   const [activeSection, setActiveSection] = useState('profile')
   const [profileData, setProfileData] = useState({
@@ -38,8 +36,9 @@ function SettingsTab() {
 
   const handleProfileSave = (e) => {
     e.preventDefault()
-    // Mock API call to update profile
-    dispatch(setUser({ ...user, name: profileData.name, email: profileData.email }))
+    // Update user in localStorage
+    const updatedUser = { ...user, name: profileData.name, email: profileData.email }
+    localStorage.setItem('user', JSON.stringify(updatedUser))
     toast.success('Profile updated successfully!')
   }
 

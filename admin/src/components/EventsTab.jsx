@@ -1,74 +1,70 @@
 import { useState, useEffect } from 'react'
 import { Calendar, Users, MapPin, Clock, Plus } from 'lucide-react'
+import { eventAPI } from '../services/api'
 import CreateEventModal from './CreateEventModal'
+import toast from 'react-hot-toast'
 
 function EventsTab({ activeSubTab }) {
   const [events, setEvents] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
 
-  // Mock data - replace with API calls
-  const allEvents = [
-    {
-      id: 1,
-      title: 'Tech Career Fair 2024',
-      description: 'Annual technology career fair featuring top companies',
-      date: '2024-03-15T10:00:00Z',
-      location: 'University Convention Center',
-      participants: 150,
-      maxParticipants: 200,
-      status: 'upcoming'
-    },
-    {
-      id: 2,
-      title: 'Software Engineering Workshop',
-      description: 'Hands-on workshop covering modern software development',
-      date: '2024-01-20T14:00:00Z',
-      location: 'Engineering Building Room 101',
-      participants: 75,
-      maxParticipants: 100,
-      status: 'live'
-    },
-    {
-      id: 3,
-      title: 'AI/ML Bootcamp',
-      description: 'Intensive bootcamp on artificial intelligence and machine learning',
-      date: '2024-01-10T09:00:00Z',
-      location: 'Tech Hub Auditorium',
-      participants: 200,
-      maxParticipants: 200,
-      status: 'completed'
-    }
-  ]
-
   useEffect(() => {
-    // Filter events based on active sub tab
-    let filteredEvents = allEvents
-    
+    fetchEvents()
+  }, [])
+
+  const fetchEvents = async () => {
+    try {
+      const response = await eventAPI.getAll()
+      console.log('Events API Response:', response)
+      if (response.data.success) {
+        const eventsData = response.data.events || []
+        // Add status based on date
+        const eventsWithStatus = eventsData.map(event => {
+          const eventDate = new Date(event.date)
+          const now = new Date()
+          const status = eventDate > now ? 'upcoming' : 'completed'
+          return {
+            ...event,
+            status,
+            participants: event.studentsEnrolled?.length || 0
+          }
+        })
+        setEvents(eventsWithStatus)
+      }
+    } catch (error) {
+      console.error('Failed to fetch events:', error)
+      toast.error('Failed to fetch events')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredEvents = events.filter(event => {
     switch (activeSubTab) {
       case 'live-events':
-        filteredEvents = allEvents.filter(event => event.status === 'live')
-        break
+        return event.status === 'live' || event.status === 'ongoing'
       case 'upcoming-events':
-        filteredEvents = allEvents.filter(event => event.status === 'upcoming')
-        break
+        return event.status === 'upcoming'
       case 'past-events':
-        filteredEvents = allEvents.filter(event => event.status === 'completed')
-        break
+        return event.status === 'completed'
       case 'all-events':
       default:
-        filteredEvents = allEvents
-        break
+        return true
     }
-    
-    setEvents(filteredEvents)
-  }, [activeSubTab])
+  })
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'live': return 'bg-green-100 text-green-800 border-green-200'
-      case 'upcoming': return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
-      default: return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'live': 
+      case 'ongoing': 
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'upcoming': 
+        return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'completed': 
+        return 'bg-gray-100 text-gray-800 border-gray-200'
+      default: 
+        return 'bg-gray-100 text-gray-800 border-gray-200'
     }
   }
 
@@ -82,13 +78,28 @@ function EventsTab({ activeSubTab }) {
     }
   }
 
+  const handleEventCreated = () => {
+    fetchEvents() // Refresh the events list
+    setShowCreateModal(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg">Loading events...</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{getTabTitle()}</h1>
-          <p className="text-gray-600 mt-1">{events.length} events found</p>
+          <p className="text-gray-600 mt-1">{filteredEvents.length} events found</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -100,7 +111,7 @@ function EventsTab({ activeSubTab }) {
       </div>
 
       {/* Events Grid */}
-      {events.length === 0 ? (
+      {filteredEvents.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No events found</h3>
@@ -115,13 +126,13 @@ function EventsTab({ activeSubTab }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map((event) => (
-            <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          {filteredEvents.map((event) => (
+            <div key={event._id || event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">{event.title}</h3>
-                  <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(event.status)}`}>
-                    {event.status}
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(event.status || 'upcoming')}`}>
+                    {event.status || 'upcoming'}
                   </span>
                 </div>
                 
@@ -130,7 +141,7 @@ function EventsTab({ activeSubTab }) {
                 <div className="space-y-2 text-sm text-gray-500 mb-4">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    {new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString()}
+                    {new Date(event.date).toLocaleDateString()} {event.time && `at ${event.time}`}
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
@@ -138,8 +149,14 @@ function EventsTab({ activeSubTab }) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    {event.participants}/{event.maxParticipants} participants
+                    {event.participants || 0} registered
                   </div>
+                  {event.type && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {event.type}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex gap-2">
@@ -159,7 +176,7 @@ function EventsTab({ activeSubTab }) {
       {showCreateModal && (
         <CreateEventModal
           onClose={() => setShowCreateModal(false)}
-          onEventCreated={() => setShowCreateModal(false)}
+          onEventCreated={handleEventCreated}
         />
       )}
     </div>

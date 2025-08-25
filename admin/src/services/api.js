@@ -1,6 +1,10 @@
 import axios from 'axios'
+import { apiConnector } from './apiConnector'
+import { clearAuth } from '../utils/auth'
 
-const API_BASE_URL = 'http://localhost:4000/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://backend-master-pkfu.onrender.com/api/v1'
+
+console.log('API_BASE_URL:', API_BASE_URL)
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -20,8 +24,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+      clearAuth()
       window.location.href = '/login'
     }
     return Promise.reject(error)
@@ -29,17 +32,27 @@ api.interceptors.response.use(
 )
 
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  signup: (userData) => api.post('/auth/signup', userData),
+  login: (credentials) => apiConnector("POST", API_BASE_URL + '/auth/loginAdmin', credentials),
+  signup: (userData) => apiConnector("POST", API_BASE_URL + '/auth/signupAdmin', userData),
 }
 
 export const eventAPI = {
-  create: (eventData) => api.post('/events/create', eventData),
-  getAll: () => api.get('/events/all'),
-  getById: (eventId) => api.get(`/events/${eventId}`),
-  getLeads: (eventId) => api.get(`/events/${eventId}/leads`),
-  exportLeads: (eventId) => api.get(`/events/${eventId}/export`, { responseType: 'blob' }),
-  updateStatus: (eventId, status) => api.put(`/events/${eventId}/status`, { status }),
+  create: (eventData) => {
+    return apiConnector("POST", API_BASE_URL + '/event/createEvent', eventData, {
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json'
+    })
+  },
+  getAll: () => {
+    return apiConnector("GET", API_BASE_URL + '/event/allevents', null, {
+      'Content-Type': 'application/json'
+    })
+  },
+  getById: (eventId) => apiConnector("GET", API_BASE_URL + `/event/getEvent/${eventId}`),
+  getStudentsInEvent: (eventId) => apiConnector("GET", API_BASE_URL + '/event/studentsInEvent', { eventId }),
+  getLeads: (eventId) => apiConnector("GET", API_BASE_URL + `/event/${eventId}/leads`),
+  exportLeads: (eventId) => api.get(`/event/${eventId}/export`, { responseType: 'blob' }),
+  updateStatus: (eventId, status) => apiConnector("PUT", API_BASE_URL + `/event/${eventId}/status`, { status }),
 }
 
 export default api
