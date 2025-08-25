@@ -1,52 +1,171 @@
-const Event = require('../models/event');
+const express = require("express");
+const Event = require("../models/event");
+const Admin = require("../models/admin");
+const Student = require("../models/user");
 
-
+// Create Event (Admin only)
 exports.createEvent = async (req, res) => {
+  try {
+    const { title, description, location,date,detailedDescription,mapLink,type,createdBy} = req.body;
+    
+
+    if (!title || !description || !location || !date || !detailedDescription || !mapLink || !type || !createdBy) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required"
+      });
+    }
+
+    const event = await Event.create({
+      title,
+      description,
+      location,
+      createdBy,
+      date,
+      detailedDescription,
+      mapLink,
+      type,
+    });
+
+    await Admin.findByIdAndUpdate(
+      createdBy,
+      { $push: { createdEventId: event._id } },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      event,
+      message: "Event created successfully"
+    });
+  } catch (error) {
+    console.log("Create Event Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
+
+
+// Register student for an event
+exports.registerEvent = async (req, res) => {
     try {
-        const adminId = req.user.id; 
-        const { eventName, eventType, eventDate, location, status } = req.body;
+        const { eventId,name,email,phone,college,year,fieldOfStudy} = req.body;
+        
 
-        const event = new Event({
-            eventName,
-            eventType,
-            eventDate,
-            location,
-            status,
-            createdBy: adminId
-        });
+        if (!eventId) {
+            return res.status(400).json({
+                success: false,
+                message: "Event ID is required"
+            });
+        }
 
-        await event.save();
+        const eve = await Event.findById(eventId)
 
-        res.status(201).json({
+        const student = await Student.create({
+            name,email,phone,college,year,fieldOfStudy,registeredEventId:eve._id
+        })
+
+        const event = await Event.findByIdAndUpdate(
+            eventId,
+            { $push:{
+                    studentsEnrolled:student._id
+                } 
+            },
+            { new: true }
+        )
+
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: "Event not found"
+            });
+        }
+
+        return res.status(200).json({
             success: true,
-            message: 'Event created successfully',
-            data: event
+            student,
+            event,
+            message: "Successfully registered for event"
         });
     } catch (error) {
-        res.status(500).json({
+        console.error("Register Event Error:", error);
+        return res.status(500).json({
             success: false,
-            message: 'Failed to create event',
-            error: error.message
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+};
+
+// Get all events
+exports.allEvents = async (req, res) => {
+    try {
+        const events = await Event.find()
+            .populate("createdBy", "name email")
+            .populate("studentsEnrolled", "name email")
+            .populate("attendStudents", "name email");
+
+        return res.status(200).json({
+            success: true,
+            count: events.length,
+            events,
+        });
+    } catch (error) {
+        console.error("All Events Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
         });
     }
 };
 
 
-exports.getAdminEvents = async (req, res) => {
-    try {
-        const adminId = req.user.id; 
+// exports.adminEvents = async (req, res) => {
+//     try {
+//         const adminId = req.user._id;
 
-        const events = await Event.find({ createdBy: adminId });
+//         const events = await Event.find({ createdBy: adminId })
+//             .populate("studentsEnrolled", "name email")
+//             .populate("attendedStudents", "name email");
 
-        res.status(200).json({
+//         return res.status(200).json({
+//             success: true,
+//             count: events.length,
+//             events,
+//         });
+//     } catch (error) {
+//         console.error("Admin Events Error:", error);
+//         return res.status(500).json({
+//             success: false,
+//             message: "Internal Server Error",
+//             error: error.message,
+//         });
+//     }
+// };
+
+exports.studentsInEvent = async(req,res) => {
+    try{
+        const {eventId} = req.body;
+
+        const event = await Event.findById(eventId).populate("studentsEnrolled")
+                                .exec();
+
+        return res.status(200).json({
             success: true,
-            data: events
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch events',
-            error: error.message
+            message:"list of all students in event",
+            event,
         });
     }
-};
+    catch (error) {
+        console.error("Admin Events Error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message,
+        });
+    }
+}
