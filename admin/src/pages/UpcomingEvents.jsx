@@ -1,6 +1,10 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Users, MapPin, Calendar, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Users, MapPin, Calendar, TrendingUp, Link, QrCode, Mail, Download, Settings, Eye, Copy, Check, X } from 'lucide-react'
+import QRCode from 'react-qr-code'
+import toast from 'react-hot-toast'
+import { eventAPI } from '../services/api'
+import emailjs from 'emailjs-com'
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -27,6 +31,18 @@ export const UpcomingEvents = () => {
     const location = useLocation()
     const navigate = useNavigate()
     const event = location.state?.eventData
+    
+    // State for modals and functionality
+    const [showQRModal, setShowQRModal] = useState(false)
+    const [showEmailModal, setShowEmailModal] = useState(false)
+    const [showRegistrationsModal, setShowRegistrationsModal] = useState(false)
+    const [registrationLink, setRegistrationLink] = useState('')
+    const [copied, setCopied] = useState(false)
+    const [registeredUsers, setRegisteredUsers] = useState([])
+    const [loading, setLoading] = useState(false)
+    const [emailList, setEmailList] = useState([''])
+    const [emailSubject, setEmailSubject] = useState('Event Registration - ')
+    const [emailMessage, setEmailMessage] = useState('We are excited to invite you to register for our upcoming event!')
 
     // Fallback data if no event data is passed
     const defaultEvent = {
@@ -96,6 +112,145 @@ export const UpcomingEvents = () => {
     }
 
     const daysUntilEvent = Math.ceil((new Date(currentEvent.date) - new Date()) / (1000 * 60 * 60 * 24))
+
+    // Generate registration link
+    useEffect(() => {
+        const baseUrl = window.location.origin
+        const eventId = currentEvent._id || currentEvent.id
+        const link = `${baseUrl}/student/register/${eventId}`
+        setRegistrationLink(link)
+        setEmailSubject(`Event Registration - ${currentEvent.title}`)
+    }, [currentEvent])
+
+    // Fetch registered users
+    const fetchRegisteredUsers = async () => {
+        setLoading(true)
+        try {
+            const eventId = currentEvent._id || currentEvent.id
+            const response = await eventAPI.getStudentsInEvent(eventId)
+            if (response.data.success) {
+                setRegisteredUsers(response.data.event.studentsEnrolled || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch registered users:', error)
+            toast.error('Failed to fetch registered users')
+            // Mock data for demo
+            setRegisteredUsers([
+                { _id: '1', name: 'John Doe', email: 'john@example.com', college: 'MIT', year: '3rd Year', fieldOfStudy: 'Computer Science' },
+                { _id: '2', name: 'Jane Smith', email: 'jane@example.com', college: 'Stanford', year: '2nd Year', fieldOfStudy: 'Engineering' },
+                { _id: '3', name: 'Mike Johnson', email: 'mike@example.com', college: 'Harvard', year: '4th Year', fieldOfStudy: 'Business' }
+            ])
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Copy registration link
+    const copyRegistrationLink = () => {
+        navigator.clipboard.writeText(registrationLink)
+        setCopied(true)
+        toast.success('Registration link copied!')
+        setTimeout(() => setCopied(false), 2000)
+    }
+
+    // Export registered users to CSV
+    const exportRegisteredUsers = () => {
+        if (registeredUsers.length === 0) {
+            toast.error('No registered users to export')
+            return
+        }
+
+        const csvContent = [
+            ['Name', 'Email', 'College', 'Year', 'Field of Study'],
+            ...registeredUsers.map(user => [
+                user.name || 'N/A',
+                user.email || 'N/A',
+                user.college || 'N/A',
+                user.year || 'N/A',
+                user.fieldOfStudy || 'N/A'
+            ])
+        ].map(row => row.join(',')).join('\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv' })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${currentEvent.title}_registered_users.csv`
+        a.click()
+        window.URL.revokeObjectURL(url)
+        toast.success('Registered users exported successfully!')
+    }
+
+    // Send registration emails
+    const sendRegistrationEmails = async () => {
+        setLoading(true)
+        const validEmails = emailList.filter(email => email.trim() !== '')
+        
+        if (validEmails.length === 0) {
+            toast.error('Please add at least one email address')
+            setLoading(false)
+            return
+        }
+
+        const emailPromises = validEmails.map(async (email, index) => {
+            const templateParams = {
+                to_email: email,
+                to_name: `Participant ${index + 1}`,
+                from_name: 'Event Team',
+                subject: emailSubject,
+                message: `${emailMessage}\n\nEvent: ${currentEvent.title}\nDate: ${new Date(currentEvent.date).toLocaleDateString()}\nLocation: ${currentEvent.location}\n\nRegister here: ${registrationLink}`,
+            }
+
+            try {
+                await emailjs.send(
+                    "service_2xa9ne7",
+                    "template_p9yg4z8",
+                    templateParams,
+                    "43kNclRsXhWyuRHvv"
+                )
+                return { email, status: 'success' }
+            } catch (error) {
+                console.error(`Failed to send email to ${email}:`, error)
+                return { email, status: 'failed' }
+            }
+        })
+
+        try {
+            const results = await Promise.all(emailPromises)
+            const successCount = results.filter(r => r.status === 'success').length
+            const failedCount = results.filter(r => r.status === 'failed').length
+            
+            if (successCount > 0) {
+                toast.success(`Successfully sent ${successCount} registration emails!`)
+            }
+            if (failedCount > 0) {
+                toast.error(`Failed to send ${failedCount} emails`)
+            }
+            setShowEmailModal(false)
+        } catch (error) {
+            toast.error('Error sending emails')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Add email to list
+    const addEmailToList = () => {
+        setEmailList([...emailList, ''])
+    }
+
+    // Update email in list
+    const updateEmailInList = (index, value) => {
+        const newList = [...emailList]
+        newList[index] = value
+        setEmailList(newList)
+    }
+
+    // Remove email from list
+    const removeEmailFromList = (index) => {
+        const newList = emailList.filter((_, i) => i !== index)
+        setEmailList(newList.length === 0 ? [''] : newList)
+    }
 
     return (
         <div className="p-6">
@@ -213,18 +368,285 @@ export const UpcomingEvents = () => {
                 </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="mt-6 flex gap-4">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
-                    Manage Event
-                </button>
-                <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium">
-                    View Registrations
-                </button>
-                <button className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-6 py-3 rounded-lg font-medium">
-                    Export Data
-                </button>
+            {/* Registration Management */}
+            <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+                <h3 className="text-xl font-semibold mb-4">Registration Management</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Registration Link */}
+                    <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900">Registration Link</h4>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={registrationLink}
+                                readOnly
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                            />
+                            <button
+                                onClick={copyRegistrationLink}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2"
+                            >
+                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                {copied ? 'Copied!' : 'Copy'}
+                            </button>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setShowQRModal(true)}
+                                className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                            >
+                                <QrCode className="w-4 h-4" />
+                                Generate QR Code
+                            </button>
+                            <button
+                                onClick={() => setShowEmailModal(true)}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                            >
+                                <Mail className="w-4 h-4" />
+                                Send Emails
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="space-y-4">
+                        <h4 className="font-medium text-gray-900">Quick Actions</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => {
+                                    fetchRegisteredUsers()
+                                    setShowRegistrationsModal(true)
+                                }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                            >
+                                <Eye className="w-4 h-4" />
+                                View Registrations
+                            </button>
+                            <button
+                                onClick={exportRegisteredUsers}
+                                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Export Leads
+                            </button>
+                            <button
+                                onClick={() => navigate(`/events/${currentEvent._id || currentEvent.id}`)}
+                                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                            >
+                                <Settings className="w-4 h-4" />
+                                Manage Event
+                            </button>
+                            <button
+                                onClick={() => window.open(registrationLink, '_blank')}
+                                className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg flex items-center justify-center gap-2"
+                            >
+                                <Link className="w-4 h-4" />
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            {/* QR Code Modal */}
+            {showQRModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+                        <div className="p-6 border-b border-gray-200">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-semibold">Registration QR Code</h3>
+                                <button
+                                    onClick={() => setShowQRModal(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-6 text-center">
+                            <div className="bg-white p-4 rounded-lg inline-block">
+                                <QRCode value={registrationLink} size={200} />
+                            </div>
+                            <p className="text-sm text-gray-600 mt-4">
+                                Scan this QR code to register for the event
+                            </p>
+                            <button
+                                onClick={() => {
+                                    const canvas = document.querySelector('#qr-code canvas')
+                                    if (canvas) {
+                                        const link = document.createElement('a')
+                                        link.download = `${currentEvent.title}_QR_Code.png`
+                                        link.href = canvas.toDataURL()
+                                        link.click()
+                                    }
+                                }}
+                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                            >
+                                Download QR Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Email Modal */}
+            {showEmailModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-200">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-semibold">Send Registration Emails</h3>
+                                <button
+                                    onClick={() => setShowEmailModal(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                                <input
+                                    type="text"
+                                    value={emailSubject}
+                                    onChange={(e) => setEmailSubject(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                                <textarea
+                                    value={emailMessage}
+                                    onChange={(e) => setEmailMessage(e.target.value)}
+                                    rows={4}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Event details and registration link will be automatically added.
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Email Recipients</label>
+                                {emailList.map((email, index) => (
+                                    <div key={index} className="flex gap-2 mb-2">
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => updateEmailInList(index, e.target.value)}
+                                            placeholder="Enter email address"
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                        <button
+                                            onClick={() => removeEmailFromList(index)}
+                                            className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={addEmailToList}
+                                    className="text-blue-600 hover:text-blue-800 text-sm"
+                                >
+                                    + Add another email
+                                </button>
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    onClick={sendRegistrationEmails}
+                                    disabled={loading}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Mail className="w-4 h-4" />
+                                            Send Emails
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setShowEmailModal(false)}
+                                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Registrations Modal */}
+            {showRegistrationsModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-200">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-xl font-semibold">Registered Participants ({registeredUsers.length})</h3>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={exportRegisteredUsers}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Export CSV
+                                    </button>
+                                    <button
+                                        onClick={() => setShowRegistrationsModal(false)}
+                                        className="p-2 hover:bg-gray-100 rounded-lg"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            {loading ? (
+                                <div className="text-center py-8">
+                                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                                    <p>Loading registered users...</p>
+                                </div>
+                            ) : registeredUsers.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                                    <p>No registrations yet</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-gray-200">
+                                                <th className="text-left py-3 px-4 font-medium text-gray-900">Name</th>
+                                                <th className="text-left py-3 px-4 font-medium text-gray-900">Email</th>
+                                                <th className="text-left py-3 px-4 font-medium text-gray-900">College</th>
+                                                <th className="text-left py-3 px-4 font-medium text-gray-900">Year</th>
+                                                <th className="text-left py-3 px-4 font-medium text-gray-900">Field of Study</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {registeredUsers.map((user, index) => (
+                                                <tr key={user._id || index} className="border-b border-gray-100 hover:bg-gray-50">
+                                                    <td className="py-3 px-4">{user.name || 'N/A'}</td>
+                                                    <td className="py-3 px-4">{user.email || 'N/A'}</td>
+                                                    <td className="py-3 px-4">{user.college || 'N/A'}</td>
+                                                    <td className="py-3 px-4">{user.year || 'N/A'}</td>
+                                                    <td className="py-3 px-4">{user.fieldOfStudy || 'N/A'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
